@@ -342,16 +342,60 @@ function handleMatchResults(payload) {
   console.log(`    Total rows now : ${updated.length}`);
 }
 
+// ─── Static files (dashboard HTML) ───────────────────────────────────────────
+
+app.use(express.static(path.join(__dirname, "public")));
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", bashoId: state.bashoId });
 });
 
+// ─── Dashboard API ────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/matches
+ * Returns all rows from the current basho CSV as JSON, plus basho metadata.
+ * The dashboard fetches this to render the table.
+ */
+app.get("/api/matches", (_req, res) => {
+  if (!state.bashoId) {
+    return res.json({ bashoId: null, matches: [] });
+  }
+
+  const file = csvPath(state.bashoId);
+  const matches = readCsv(file);
+  res.json({ bashoId: state.bashoId, matches });
+});
+
+/**
+ * GET /api/matches/download
+ * Serves the raw CSV file as a download.
+ */
+app.get("/api/matches/download", (req, res) => {
+  if (!state.bashoId) {
+    return res.status(404).send("No active basho.");
+  }
+
+  const file = csvPath(state.bashoId);
+  if (!fs.existsSync(file)) {
+    return res.status(404).send("No CSV file found for the current basho.");
+  }
+
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="basho_${state.bashoId}_matches.csv"`
+  );
+  fs.createReadStream(file).pipe(res);
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
   console.log(`\n🚀  Sumo webhook server listening on port ${PORT}`);
+  console.log(`    Dashboard: http://localhost:${PORT}/`);
   console.log(`    POST http://localhost:${PORT}/webhook`);
   console.log(`    GET  http://localhost:${PORT}/health\n`);
 });
