@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sumo Match Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:       #1a1008;
+      --paper:     #f5f0e8;
+      --red:       #c0392b;
+      --red-dim:   #8b1a12;
+      --gold:      #b8860b;
+      --sand:      #e8dfc8;
+      --line:      #c8bfa8;
+      --winner-bg: #fff8e8;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      padding-bottom: 4rem;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 2.5rem 3rem 2rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+      border-bottom: 4px solid var(--red);
+    }
+
+    .header-left h1 {
+      font-family: 'Shippori Mincho', serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .header-left h1 span {
+      color: var(--red);
+    }
+
+    .basho-badge {
+      margin-top: 0.6rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: #a09888;
+      text-transform: uppercase;
+    }
+
+    .basho-badge strong {
+      color: var(--gold);
+      font-weight: 500;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 1.1rem;
+      border: 1.5px solid currentColor;
+      background: transparent;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+      border-radius: 2px;
+    }
+
+    .btn-ghost { color: var(--paper); }
+    .btn-ghost:hover { background: var(--paper); color: var(--ink); }
+
+    .btn-red { color: var(--red); border-color: var(--red); }
+    .btn-red:hover { background: var(--red); color: var(--paper); }
+
+    /* ── Controls bar ── */
+    .controls {
+      padding: 1.2rem 3rem;
+      background: var(--sand);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+      max-width: 380px;
+    }
+
+    .search-wrap svg {
+      position: absolute;
+      left: 0.7rem;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.45;
+    }
+
+    #search {
+      width: 100%;
+      padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--ink);
+      border-radius: 2px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    #search:focus { border-color: var(--red); }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #7a6e60;
+    }
+
+    select {
+      padding: 0.45rem 0.6rem;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--ink);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:focus { border-color: var(--red); }
+
+    .count-label {
+      margin-left: auto;
+      font-size: 0.72rem;
+      color: #7a6e60;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    /* ── Main table area ── */
+    main {
+      padding: 2rem 3rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1.5px solid var(--line);
+      border-radius: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    thead {
+      background: var(--ink);
+      color: var(--paper);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    th {
+      padding: 0.8rem 1rem;
+      text-align: left;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.68rem;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      border-right: 1px solid #2e2416;
+    }
+
+    th:last-child { border-right: none; }
+
+    th:hover { background: #2e2416; }
+
+    th .sort-arrow {
+      display: inline-block;
+      margin-left: 0.3rem;
+      opacity: 0.35;
+      font-style: normal;
+      font-size: 0.7rem;
+    }
+
+    th.sorted .sort-arrow { opacity: 1; color: var(--gold); }
+
+    tbody tr {
+      border-bottom: 1px solid var(--line);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--sand); }
+
+    tbody tr.has-winner { background: var(--winner-bg); }
+    tbody tr.has-winner:hover { background: #fff0cc; }
+
+    td {
+      padding: 0.65rem 1rem;
+      border-right: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    td:last-child { border-right: none; }
+
+    .winner-tag {
+      display: inline-block;
+      background: var(--red);
+      color: #fff;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      padding: 0.15rem 0.45rem;
+      border-radius: 1px;
+      text-transform: uppercase;
+      font-weight: 500;
+      vertical-align: middle;
+      margin-left: 0.4rem;
+    }
+
+    .day-pill {
+      display: inline-block;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 1px;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Empty / loading states ── */
+    .state-block {
+      padding: 5rem 2rem;
+      text-align: center;
+      color: #9a8e80;
+    }
+
+    .state-block .kanji {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 5rem;
+      line-height: 1;
+      display: block;
+      margin-bottom: 1rem;
+      opacity: 0.18;
+    }
+
+    .state-block p {
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Refresh indicator ── */
+    #refresh-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      header, .controls, main { padding-left: 1.2rem; padding-right: 1.2rem; }
+      .controls { gap: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>相撲 <span>Match</span> Dashboard</h1>
+    <p class="basho-badge">
+      Active basho: <strong id="basho-label">—</strong>
+      &nbsp;·&nbsp; <span id="refresh-dot"></span> auto-refreshes every 60s
+    </p>
+  </div>
+  <div class="header-right">
+    <a id="dl-btn" href="/api/matches/download" class="btn btn-ghost" download>
+      ↓ Download CSV
+    </a>
+    <button class="btn btn-red" onclick="loadData()">↺ Refresh</button>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="search-wrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input id="search" type="text" placeholder="Search rikishi, kimarite…" oninput="renderTable()" />
+  </div>
+
+  <label class="filter-group">
+    Day
+    <select id="filter-day" onchange="renderTable()">
+      <option value="">All</option>
+    </select>
+  </label>
+
+  <label class="filter-group">
+    Result
+    <select id="filter-result" onchange="renderTable()">
+      <option value="">All</option>
+      <option value="decided">Decided</option>
+      <option value="pending">Pending</option>
+    </select>
+  </label>
+
+  <span class="count-label" id="count-label">— matches</span>
+</div>
+
+<main>
+  <div class="table-wrap" id="table-wrap">
+    <div class="state-block">
+      <span class="kanji">力</span>
+      <p>Loading match data…</p>
+    </div>
+  </div>
+</main>
+
+<script>
+  let allMatches = [];
+  let columns = [];
+  let sortCol = null;
+  let sortAsc = true;
+
+  // ── Fetch data from server ────────────────────────────────────────────────
+
+  async function loadData() {
+    try {
+      const res = await fetch('/api/matches');
+      const json = await res.json();
+
+      document.getElementById('basho-label').textContent =
+        json.bashoId ?? 'None — waiting for newBasho webhook';
+
+      allMatches = json.matches ?? [];
+
+      if (allMatches.length > 0) {
+        columns = Object.keys(allMatches[0]);
+        populateDayFilter();
+      }
+
+      renderTable();
+    } catch (e) {
+      document.getElementById('table-wrap').innerHTML = `
+        <div class="state-block">
+          <span class="kanji">×</span>
+          <p>Could not load data. Is the server running?</p>
+        </div>`;
+    }
+  }
+
+  // ── Populate day dropdown ─────────────────────────────────────────────────
+
+  function populateDayFilter() {
+    const sel = document.getElementById('filter-day');
+    const current = sel.value;
+    const days = [...new Set(allMatches.map(m => m.day).filter(Boolean))]
+      .sort((a, b) => Number(a) - Number(b));
+
+    sel.innerHTML = '<option value="">All</option>' +
+      days.map(d => `<option value="${d}">Day ${d}</option>`).join('');
+
+    if (days.includes(current)) sel.value = current;
+  }
+
+  // ── Filter + sort + render ────────────────────────────────────────────────
+
+  function renderTable() {
+    const query  = document.getElementById('search').value.toLowerCase().trim();
+    const day    = document.getElementById('filter-day').value;
+    const result = document.getElementById('filter-result').value;
+
+    let rows = allMatches.filter(m => {
+      if (day && String(m.day) !== day) return false;
+      if (result === 'decided' && !m.winner && !m.winnerId) return false;
+      if (result === 'pending' && (m.winner || m.winnerId)) return false;
+      if (query) {
+        const haystack = Object.values(m).join(' ').toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+
+    if (sortCol !== null && columns[sortCol]) {
+      const key = columns[sortCol];
+      rows = [...rows].sort((a, b) => {
+        const av = a[key] ?? '';
+        const bv = b[key] ?? '';
+        const an = Number(av), bn = Number(bv);
+        const cmp = (!isNaN(an) && !isNaN(bn))
+          ? an - bn
+          : String(av).localeCompare(String(bv));
+        return sortAsc ? cmp : -cmp;
+      });
+    }
+
+    document.getElementById('count-label').textContent =
+      `${rows.length} match${rows.length !== 1 ? 'es' : ''}`;
+
+    if (allMatches.length === 0) {
+      document.getElementById('table-wrap').innerHTML = `
+        <div class="state-block">
+          <span class="kanji">待</span>
+          <p>No matches yet. Send a <strong>newBasho</strong> then <strong>newMatches</strong> test webhook.</p>
+        </div>`;
+      return;
+    }
+
+    if (rows.length === 0) {
+      document.getElementById('table-wrap').innerHTML = `
+        <div class="state-block">
+          <span class="kanji">無</span>
+          <p>No matches found for the current filters.</p>
+        </div>`;
+      return;
+    }
+
+    const thead = `<thead><tr>${columns.map((col, i) => {
+      const active = sortCol === i ? ' sorted' : '';
+      const arrow  = sortCol === i ? (sortAsc ? '↑' : '↓') : '↕';
+      return `<th class="${active}" onclick="sortBy(${i})">${col}<i class="sort-arrow">${arrow}</i></th>`;
+    }).join('')}</tr></thead>`;
+
+    const tbody = '<tbody>' + rows.map(row => {
+      const hasWinner = row.winner || row.winnerId;
+      const cells = columns.map(col => {
+        let val = row[col] ?? '';
+
+        // Highlight the winner name inline
+        if (col === 'day' && val !== '') {
+          val = `<span class="day-pill">Day ${val}</span>`;
+        }
+        if ((col === 'winner' || col === 'eastShikona' || col === 'westShikona') && hasWinner) {
+          const winnerName = row.winner || '';
+          if (val && val === winnerName) {
+            val = `${escHtml(val)} <span class="winner-tag">W</span>`;
+          } else {
+            val = escHtml(String(val));
+          }
+        } else {
+          val = escHtml(String(val));
+        }
+        return `<td>${val}</td>`;
+      }).join('');
+      return `<tr class="${hasWinner ? 'has-winner' : ''}">${cells}</tr>`;
+    }).join('') + '</tbody>';
+
+    document.getElementById('table-wrap').innerHTML =
+      `<table>${thead}${tbody}</table>`;
+  }
+
+  function sortBy(colIndex) {
+    if (sortCol === colIndex) {
+      sortAsc = !sortAsc;
+    } else {
+      sortCol = colIndex;
+      sortAsc = true;
+    }
+    renderTable();
+  }
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────────────────
+
+  loadData();
+  setInterval(loadData, 60_000);
+</script>
+</body>
+</html>
