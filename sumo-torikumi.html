@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grand Sumo Torikumi Matrix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Light theme (default) ── */
+    :root, [data-theme="light"] {
+      --bg: #f5f2ed;
+      --surface: #ffffff;
+      --surface2: #ede9e2;
+      --border: rgba(0,0,0,0.08);
+      --border-strong: rgba(0,0,0,0.15);
+      --text: #1a1814;
+      --text-muted: #6b6860;
+      --text-dim: #aaa89f;
+      --rank-color: #6b6860;
+      --east: #b02a1e;
+      --west: #164d8c;
+      --gold: #a07828;
+      --gold-slider: #c9a84c;
+      --cell-match-bg: rgba(170,120,20,0.32);
+      --cell-match-border: rgba(160,110,10,0.70);
+      --cell-win-bg: rgba(30,140,30,0.32);
+      --cell-win-border: rgba(20,130,20,0.70);
+      --cell-win-text: #155215;
+      --cell-loss-bg: rgba(180,30,30,0.32);
+      --cell-loss-border: rgba(180,20,20,0.70);
+      --cell-loss-text: #7a1010;
+      --cell-sched-text: #6b4a00;
+      --cell-empty: rgba(0,0,0,0.03);
+      --cell-diag: rgba(0,0,0,0.06);
+      --empty-icon-border: rgba(0,0,0,0.15);
+      --tooltip-bg: #222;
+      --tooltip-text: #f0ede6;
+      --thumb-border: #f5f2ed;
+      --header-highlight: #1a1814;
+      --radius: 6px;
+    }
+
+    /* ── Dark theme ── */
+    [data-theme="dark"] {
+      --bg: #0e0e0e;
+      --surface: #171717;
+      --surface2: #202020;
+      --border: rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.16);
+      --text: #f0ede6;
+      --text-muted: #999890;
+      --text-dim: #555550;
+      --rank-color: #b0ae a6;
+      --rank-color: #c0bdb4;
+      --east: #d04030;
+      --west: #2a78cc;
+      --gold: #c9a84c;
+      --gold-slider: #c9a84c;
+      --cell-match-bg: rgba(210,170,60,0.28);
+      --cell-match-border: rgba(220,180,80,0.70);
+      --cell-win-bg: rgba(60,180,60,0.28);
+      --cell-win-border: rgba(60,200,60,0.70);
+      --cell-win-text: #7aea7a;
+      --cell-loss-bg: rgba(210,60,60,0.28);
+      --cell-loss-border: rgba(230,80,80,0.70);
+      --cell-loss-text: #f08080;
+      --cell-sched-text: #e8c96a;
+      --cell-empty: rgba(255,255,255,0.02);
+      --cell-diag: rgba(255,255,255,0.04);
+      --empty-icon-border: rgba(255,255,255,0.15);
+      --tooltip-bg: #1a1a1a;
+      --tooltip-text: #f0ede6;
+      --thumb-border: #0e0e0e;
+      --header-highlight: #f0ede6;
+      --radius: 6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      /* Allow full-page horizontal scroll for matrix */
+      overflow-x: auto;
+    }
+    body { min-height: 100vh; padding: 0 0 4rem; }
+
+    /* ── Theme toggle ── */
+    .theme-toggle {
+      position: fixed;
+      top: 1.1rem;
+      right: 1.5rem;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      user-select: none;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 38px;
+      height: 22px;
+      cursor: pointer;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border-strong);
+      border-radius: 11px;
+      border: 1px solid var(--border-strong);
+      transition: background 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--gold-slider); border-color: var(--gold-slider); }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      pointer-events: none;
+    }
+    .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 2rem 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      text-align: center;
+    }
+    .header-emoji {
+      font-size: 2.4rem;
+      line-height: 1;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+    .header-title h1 {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em;
+      color: var(--header-highlight);
+    }
+    .header-title .header-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-style: italic;
+      letter-spacing: 0.01em;
+    }
+    .header-title .header-meta {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* ── Controls ── */
+    .controls-wrap {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .controls-row {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr auto;
+      gap: 12px;
+      width: 100%;
+      max-width: 680px;
+      align-items: end;
+    }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    label {
+      font-size: 0.68rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted); font-weight: 500;
+    }
+    select {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      height: 38px; padding: 0 10px;
+      outline: none; width: 100%;
+      transition: border-color 0.15s; cursor: pointer;
+      -webkit-appearance: auto;
+    }
+    select:focus { border-color: var(--gold); }
+    #fetch-btn {
+      height: 38px; padding: 0 20px;
+      background: var(--gold-slider); border: none;
+      border-radius: var(--radius); color: #0e0e0e;
+      font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      cursor: pointer; transition: opacity 0.15s, transform 0.1s; white-space: nowrap;
+    }
+    #fetch-btn:hover { opacity: 0.85; }
+    #fetch-btn:active { transform: scale(0.97); }
+    #fetch-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── Status ── */
+    .status-bar {
+      padding: 0.65rem 2rem; font-size: 0.78rem; color: var(--text-muted);
+      min-height: 36px; display: flex; align-items: center; justify-content: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .status-bar.error { color: #c0392b; }
+    .spinner {
+      width: 13px; height: 13px;
+      border: 2px solid var(--border-strong); border-top-color: var(--gold-slider);
+      border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Progress ── */
+    .progress-wrap {
+      padding: 0.65rem 2rem; display: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .progress-wrap.visible { display: block; }
+    .progress-bar-bg { height: 2px; background: var(--border-strong); border-radius: 2px; overflow: hidden; max-width: 680px; margin: 0 auto; }
+    .progress-bar-fill { height: 2px; background: var(--gold-slider); border-radius: 2px; width: 0%; transition: width 0.2s; }
+    .progress-text { font-size: 0.7rem; color: var(--text-dim); margin-top: 4px; text-align: center; }
+
+    /* ── Range Slider ── */
+    .range-wrap {
+      padding: 1.1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: none;
+      align-items: center;
+      flex-direction: column;
+    }
+    .range-wrap.visible { display: flex; }
+    .range-inner { width: 100%; max-width: 680px; }
+    .range-header {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .range-label {
+      font-size: 0.68rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted); font-weight: 500;
+    }
+    .range-value {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 0.95rem; color: var(--gold);
+    }
+    .slider-container { position: relative; padding: 8px 0 4px; }
+    .slider-track { height: 3px; background: var(--border-strong); border-radius: 2px; position: relative; }
+    .slider-fill { position: absolute; top: 0; height: 3px; background: var(--gold-slider); border-radius: 2px; pointer-events: none; }
+    .slider-inputs { position: relative; height: 0; }
+    input[type=range] {
+      -webkit-appearance: none; appearance: none;
+      position: absolute; top: -9px; width: 100%;
+      height: 18px; background: transparent; pointer-events: none; outline: none; margin: 0;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--gold-slider); border: 2px solid var(--thumb-border);
+      cursor: pointer; pointer-events: all; transition: transform 0.1s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type=range]::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--gold-slider); border: 2px solid var(--thumb-border);
+      cursor: pointer; pointer-events: all;
+    }
+    .day-ticks { display: flex; justify-content: space-between; margin-top: 12px; }
+    .day-tick { font-size: 0.62rem; color: var(--text-dim); text-align: center; width: 20px; }
+    .day-tick.has-data { color: var(--text-muted); }
+
+    /* ── Legend ── */
+    .legend-wrap {
+      padding: 0.75rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: none; gap: 16px; flex-wrap: wrap;
+      align-items: center; justify-content: center;
+    }
+    .legend-wrap.visible { display: flex; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-muted); }
+    .legend-swatch { width: 22px; height: 18px; border-radius: 3px; flex-shrink: 0; }
+    .swatch-win { background: var(--cell-win-bg); border: 1px solid var(--cell-win-border); }
+    .swatch-loss { background: var(--cell-loss-bg); border: 1px solid var(--cell-loss-border); }
+    .swatch-sched { background: var(--cell-match-bg); border: 1px solid var(--cell-match-border); }
+    .swatch-empty { background: var(--cell-empty); border: 1px solid var(--border); }
+
+    /* ── Matrix ── */
+    /* The matrix section itself does NOT scroll — the whole page scrolls horizontally */
+    .matrix-outer { padding: 1.5rem 2rem; }
+
+    table.matrix {
+      border-collapse: separate;
+      border-spacing: 2px;
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+    table.matrix th, table.matrix td { padding: 0; }
+
+    .corner-cell { width: 36px; min-width: 36px; }
+
+    /* Row header — sticky to left edge of page scroll */
+    .row-header {
+      position: sticky; left: 0; z-index: 2;
+      background: var(--bg);
+      padding-right: 8px;
+      text-align: right;
+    }
+    .row-header-inner {
+      display: flex; flex-direction: column; align-items: flex-end;
+      justify-content: center;
+      min-width: 110px; max-width: 140px;
+      padding: 4px 6px 4px 0;
+      transition: background 0.15s;
+    }
+    .row-header-inner.highlighted {
+      background: var(--surface2);
+      border-radius: 4px;
+    }
+    .rh-rank {
+      font-size: 0.58rem;
+      color: var(--rank-color);
+      letter-spacing: 0.05em; text-transform: uppercase; line-height: 1;
+    }
+    .rh-name {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 0.82rem; font-weight: 600; color: var(--text); line-height: 1.2; margin-top: 2px;
+      transition: color 0.1s;
+    }
+    .rh-name.highlighted { color: var(--gold); }
+    .rh-side { font-size: 0.56rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1px; }
+    .rh-side.east { color: var(--east); }
+    .rh-side.west { color: var(--west); }
+
+    /* Col header — sticky to top */
+    .col-header {
+      position: sticky; top: 0; z-index: 3;
+      background: var(--bg);
+      padding-bottom: 6px;
+      vertical-align: bottom;
+    }
+    .col-header-inner {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+      padding: 6px 2px 0;
+      min-height: 90px;
+      transition: background 0.15s;
+      border-radius: 4px;
+    }
+    .col-header-inner.highlighted {
+      background: var(--surface2);
+    }
+    .ch-rank {
+      font-size: 0.56rem;
+      color: var(--rank-color);
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .ch-name {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 0.8rem; font-weight: 600; color: var(--text);
+      transition: color 0.1s;
+    }
+    .ch-name.highlighted { color: var(--gold); }
+    .ch-side { font-size: 0.54rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+    .ch-side.east { color: var(--east); }
+    .ch-side.west { color: var(--west); }
+
+    /* Data cells */
+    .data-cell {
+      width: 36px; min-width: 36px; height: 36px;
+      border-radius: 3px;
+      text-align: center; vertical-align: middle;
+      font-size: 0.72rem; font-weight: 500;
+      cursor: default;
+      position: relative;
+    }
+    .cell-diag { background: var(--cell-diag); color: var(--text-dim); }
+    .cell-empty { background: var(--cell-empty); color: var(--text-dim); }
+    .cell-win {
+      background: var(--cell-win-bg);
+      border: 1px solid var(--cell-win-border);
+      color: var(--cell-win-text);
+    }
+    .cell-loss {
+      background: var(--cell-loss-bg);
+      border: 1px solid var(--cell-loss-border);
+      color: var(--cell-loss-text);
+    }
+    .cell-scheduled {
+      background: var(--cell-match-bg);
+      border: 1px solid var(--cell-match-border);
+      color: var(--cell-sched-text);
+    }
+
+    /* ── Rikishi focus (click to select) ── */
+    .data-cell.dimmed {
+      opacity: 0.12 !important;
+      filter: grayscale(0.6);
+      pointer-events: none;
+    }
+    .row-header-inner.selected,
+    .col-header-inner.selected {
+      background: var(--surface2);
+      border-radius: 4px;
+      outline: 1.5px solid var(--gold-slider);
+      outline-offset: 1px;
+    }
+    .row-header-inner.selected .rh-name,
+    .col-header-inner.selected .ch-name {
+      color: var(--gold) !important;
+    }
+    .rh-name.clickable, .ch-name.clickable {
+      cursor: pointer;
+      text-decoration-line: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 2px;
+    }
+    .rh-name.clickable:hover, .ch-name.clickable:hover {
+      color: var(--gold);
+    }
+
+    /* ── Compact mode ── */
+    /* Applied to <table class="matrix compact"> */
+    table.matrix.compact {
+      border-spacing: 1px;
+      font-size: 0.65rem;
+    }
+    table.matrix.compact .data-cell {
+      width: 24px; min-width: 24px; height: 24px;
+      font-size: 0.6rem; font-weight: 600;
+      border-radius: 2px;
+    }
+    table.matrix.compact .corner-cell { width: 24px; min-width: 24px; }
+    table.matrix.compact .row-header { padding-right: 5px; }
+    table.matrix.compact .row-header-inner {
+      min-width: 80px; max-width: 110px;
+      padding: 2px 4px 2px 0;
+    }
+    table.matrix.compact .rh-rank  { display: none; }
+    table.matrix.compact .rh-side  { display: none; }
+    table.matrix.compact .rh-name  { font-size: 0.72rem; margin-top: 0; }
+    table.matrix.compact .col-header { padding-bottom: 4px; }
+    table.matrix.compact .col-header-inner {
+      min-height: 60px;
+      padding: 4px 1px 0;
+      gap: 0;
+    }
+    table.matrix.compact .ch-rank  { display: none; }
+    table.matrix.compact .ch-side  { display: none; }
+    table.matrix.compact .ch-name  { font-size: 0.72rem; }
+
+    /* Custom JS tooltip (not ::after, so z-index works over sticky headers) */
+    #matrix-tooltip {
+      position: fixed;
+      background: var(--tooltip-bg);
+      color: var(--tooltip-text);
+      font-size: 0.7rem;
+      font-family: 'DM Sans', sans-serif;
+      white-space: nowrap;
+      padding: 4px 9px;
+      border-radius: 4px;
+      border: 1px solid var(--border-strong);
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+    }
+
+    /* ── Empty state ── */
+    .empty { padding: 4rem 2rem; text-align: center; }
+    .empty-icon {
+      width: 52px; height: 52px;
+      border: 1px solid var(--empty-icon-border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .empty h2 {
+      font-family: 'Shippori Mincho', serif;
+      font-size: 1.15rem; color: var(--text-muted);
+      font-weight: 400; margin-bottom: 0.4rem;
+    }
+    .empty p { font-size: 0.82rem; color: var(--text-dim); }
+
+    @media (max-width: 640px) {
+      header { padding: 1.25rem 1rem; gap: 0.75rem; }
+      .controls-wrap { padding: 1.1rem 1rem; }
+      .controls-row { grid-template-columns: 1fr 1fr; }
+      #fetch-btn { grid-column: 1 / -1; }
+      .status-bar, .range-wrap, .progress-wrap, .legend-wrap, .matrix-outer { padding-left: 1rem; padding-right: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Floating toggles -->
+<div style="position:fixed;top:1.1rem;right:1.5rem;z-index:100;display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+  <div class="theme-toggle" style="position:static;">
+    <span id="theme-label">Dark</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="theme-checkbox" />
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+  <div class="theme-toggle" style="position:static;">
+    <span id="compact-label">Compact</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="compact-checkbox" />
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+  <div class="theme-toggle" style="position:static;">
+    <span id="spoiler-label">Spoilers</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="spoiler-checkbox" />
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+</div>
+
+<!-- JS tooltip element (fixed position, highest z-index) -->
+<div id="matrix-tooltip"></div>
+
+<header>
+  <div class="header-emoji">🏞️</div>
+  <div class="header-title">
+    <h1>Grand Sumo Torikumi Matrix</h1>
+    <div class="header-sub">Who faced who, and when?</div>
+    <div class="header-meta">Vibe Coded by Claude · Powered by sumo-api.com</div>
+  </div>
+</header>
+
+<div class="controls-wrap">
+  <div class="controls-row">
+    <div class="field">
+      <label for="basho-select">Basho</label>
+      <select id="basho-select"><option value="">— select basho —</option></select>
+    </div>
+    <div class="field">
+      <label for="division-select">Division</label>
+      <select id="division-select">
+        <option value="Makuuchi">Makuuchi</option>
+        <option value="Juryo">Juryo</option>
+        <option value="Makushita">Makushita</option>
+        <option value="Sandanme">Sandanme</option>
+        <option value="Jonidan">Jonidan</option>
+        <option value="Jonokuchi">Jonokuchi</option>
+      </select>
+    </div>
+    <button id="fetch-btn">Fetch</button>
+  </div>
+</div>
+
+<div class="status-bar" id="status-bar">
+  <span>Choose a basho and division, then click Fetch.</span>
+</div>
+
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+  <div class="progress-text" id="progress-text">Fetching…</div>
+</div>
+
+<div class="range-wrap" id="range-wrap">
+  <div class="range-inner">
+    <div class="range-header">
+      <span class="range-label">Filter by day range</span>
+      <span class="range-value" id="range-display">Days 1 – 15</span>
+    </div>
+    <div class="slider-container">
+      <div class="slider-track">
+        <div class="slider-fill" id="slider-fill"></div>
+      </div>
+      <div class="slider-inputs">
+        <input type="range" id="range-start" min="1" max="15" value="1" step="1" />
+        <input type="range" id="range-end"   min="1" max="15" value="15" step="1" />
+      </div>
+    </div>
+    <div class="day-ticks" id="day-ticks"></div>
+  </div>
+</div>
+
+<div class="legend-wrap" id="legend-wrap">
+  <div class="legend-item"><div class="legend-swatch swatch-win"></div>Win (row beat col)</div>
+  <div class="legend-item"><div class="legend-swatch swatch-loss"></div>Loss (row lost to col)</div>
+  <div class="legend-item"><div class="legend-swatch swatch-sched"></div>Scheduled / no result yet</div>
+  <div class="legend-item"><div class="legend-swatch swatch-empty"></div>Not matched</div>
+</div>
+
+<div id="content">
+  <div class="empty">
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="color:var(--text-dim)"><path d="M3 3h18v2H3V3zm0 4h18v2H3V7zm0 4h12v2H3v-2zm0 4h12v2H3v-2zm0 4h18v2H3v-2z"/></svg>
+    </div>
+    <h2>No data loaded</h2>
+    <p>Select a basho and division, then click Fetch.</p>
+  </div>
+</div>
+
+<script>
+  // ── Theme ────────────────────────────────────────────────────────
+  const themeCheckbox   = document.getElementById('theme-checkbox');
+  const themeLabel      = document.getElementById('theme-label');
+  const compactCheckbox = document.getElementById('compact-checkbox');
+  const spoilerCheckbox = document.getElementById('spoiler-checkbox');
+
+  // default = light; checkbox checked = dark
+  themeCheckbox.addEventListener('change', () => {
+    const dark = themeCheckbox.checked;
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    themeLabel.textContent = dark ? 'Light' : 'Dark';
+    if (rikishiOrder.length) renderMatrix();
+  });
+
+  compactCheckbox.addEventListener('change', () => {
+    if (rikishiOrder.length) renderMatrix();
+  });
+
+  spoilerCheckbox.addEventListener('change', () => {
+    if (rikishiOrder.length) renderMatrix();
+  });
+
+  // ── Data ─────────────────────────────────────────────────────────
+  const MONTHS      = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const BASHO_MONTHS = [1,3,5,7,9,11];
+
+  let allMatchesByDay    = {};
+  let daysWithData       = [];
+  let rikishiOrder       = [];
+  let selectedRikishiId  = null;
+
+  // ── Basho dropdown ───────────────────────────────────────────────
+  function populateBasho() {
+    const sel = document.getElementById('basho-select');
+    const now = new Date();
+    const cy = now.getFullYear(), cm = now.getMonth() + 1;
+    sel.appendChild(new Option('May 2026', '202605'));
+    for (let y = cy; y >= cy - 5; y--) {
+      for (let mi = BASHO_MONTHS.length - 1; mi >= 0; mi--) {
+        const bm = BASHO_MONTHS[mi];
+        if (y === cy   && bm > cm)   continue;
+        if (y === 2026 && bm === 5)  continue;
+        const id = `${y}${String(bm).padStart(2,'0')}`;
+        sel.appendChild(new Option(`${MONTHS[bm-1]} ${y}`, id));
+      }
+    }
+  }
+
+  // ── Status ───────────────────────────────────────────────────────
+  function setStatus(msg, loading, error) {
+    const bar = document.getElementById('status-bar');
+    bar.className = 'status-bar' + (error ? ' error' : '');
+    bar.innerHTML = '';
+    if (loading) { const sp = document.createElement('div'); sp.className = 'spinner'; bar.appendChild(sp); }
+    const s = document.createElement('span'); s.textContent = msg; bar.appendChild(s);
+  }
+
+  function updateProgress(done, total) {
+    document.getElementById('progress-fill').style.width = Math.round(done / total * 100) + '%';
+    document.getElementById('progress-text').textContent = `Fetched ${done} of ${total} requests`;
+  }
+
+  // ── Slider ───────────────────────────────────────────────────────
+  function updateSliderFill() {
+    const s = parseInt(document.getElementById('range-start').value);
+    const e = parseInt(document.getElementById('range-end').value);
+    const ps = ((s-1)/14)*100, pe = ((e-1)/14)*100;
+    document.getElementById('slider-fill').style.left  = ps + '%';
+    document.getElementById('slider-fill').style.width = (pe - ps) + '%';
+    document.getElementById('range-display').textContent = s === e ? `Day ${s}` : `Days ${s} – ${e}`;
+  }
+
+  function buildDayTicks() {
+    const c = document.getElementById('day-ticks'); c.innerHTML = '';
+    for (let d = 1; d <= 15; d++) {
+      const t = document.createElement('div');
+      t.className = 'day-tick' + (daysWithData.includes(d) ? ' has-data' : '');
+      t.textContent = d; c.appendChild(t);
+    }
+  }
+
+  // ── Tooltip ──────────────────────────────────────────────────────
+  const tooltip = document.getElementById('matrix-tooltip');
+  function showTooltip(e, text) {
+    tooltip.textContent = text;
+    tooltip.style.display = 'block';
+    positionTooltip(e);
+  }
+  function positionTooltip(e) {
+    const pad = 10;
+    let x = e.clientX + pad;
+    let y = e.clientY - 30;
+    if (x + 200 > window.innerWidth) x = e.clientX - 200 - pad;
+    if (y < 4) y = e.clientY + pad;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top  = y + 'px';
+  }
+  function hideTooltip() { tooltip.style.display = 'none'; }
+
+  // ── Cell colour by day (recency gradient) ───────────────────────
+  // t = 0 (oldest in range) → 1 (newest in range)
+  // We interpolate bg alpha and border alpha, but keep text colour FIXED
+  // so it stays fully readable at every brightness level.
+
+  function dayT(day, rangeStart, rangeEnd) {
+    if (rangeStart === rangeEnd) return 1.0;
+    return (day - rangeStart) / (rangeEnd - rangeStart);
+  }
+
+  // Linear interpolate between two values
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function isDark() {
+    return document.documentElement.getAttribute('data-theme') === 'dark';
+  }
+
+  function applyCellStyle(td, type, day, rangeStart, rangeEnd) {
+    const t   = dayT(day, rangeStart, rangeEnd);
+    const dark = isDark();
+
+    // Each type has: bgAlphaMin, bgAlphaMax, borderAlphaMin, borderAlphaMax, bgRGB, borderRGB, textColor
+    const themes = {
+      win: {
+        bgRGB:         dark ? '60,180,60'   : '30,140,30',
+        borderRGB:     dark ? '60,200,60'   : '20,130,20',
+        bgAlpha:       [0.18, 0.55],
+        borderAlpha:   [0.45, 0.90],
+        text:          dark ? '#7aea7a'      : '#155215',
+      },
+      loss: {
+        bgRGB:         dark ? '210,60,60'   : '180,30,30',
+        borderRGB:     dark ? '230,80,80'   : '180,20,20',
+        bgAlpha:       [0.18, 0.55],
+        borderAlpha:   [0.45, 0.90],
+        text:          dark ? '#f08080'      : '#7a1010',
+      },
+      scheduled: {
+        bgRGB:         dark ? '210,170,60'  : '170,120,20',
+        borderRGB:     dark ? '220,180,80'  : '160,110,10',
+        bgAlpha:       [0.18, 0.50],
+        borderAlpha:   [0.45, 0.85],
+        text:          dark ? '#e8c96a'      : '#6b4a00',
+      },
+      spoiler: {
+        bgRGB:         dark ? '60,130,220'  : '30,100,200',
+        borderRGB:     dark ? '80,150,240'  : '20,90,190',
+        bgAlpha:       [0.18, 0.55],
+        borderAlpha:   [0.45, 0.90],
+        text:          dark ? '#7ab8f5'      : '#0d3d80',
+      },
+    };
+
+    const cfg = themes[type];
+    const bgA     = lerp(cfg.bgAlpha[0],     cfg.bgAlpha[1],     t);
+    const borderA = lerp(cfg.borderAlpha[0], cfg.borderAlpha[1], t);
+
+    td.style.background   = `rgba(${cfg.bgRGB}, ${bgA.toFixed(3)})`;
+    td.style.borderColor  = `rgba(${cfg.borderRGB}, ${borderA.toFixed(3)})`;
+    td.style.borderWidth  = '1px';
+    td.style.borderStyle  = 'solid';
+    td.style.color        = cfg.text;
+    td.style.fontWeight   = '600';
+  }
+
+  // ── Matrix render ────────────────────────────────────────────────
+  function renderMatrix() {
+    const rangeStart = parseInt(document.getElementById('range-start').value);
+    const rangeEnd   = parseInt(document.getElementById('range-end').value);
+
+    // Build match map for range
+    const matchMap = {};
+    for (let d = rangeStart; d <= rangeEnd; d++) {
+      (allMatchesByDay[d] || []).forEach(m => {
+        const eId = m.eastId, wId = m.westId;
+        if (!eId || !wId) return;
+        if (!matchMap[eId]) matchMap[eId] = {};
+        if (!matchMap[wId]) matchMap[wId] = {};
+        const info = { day: d, winnerId: m.winnerId || null, eastId: eId, westId: wId, kimarite: m.kimarite || null, scheduled: !m.winnerId };
+        matchMap[eId][wId] = info;
+        matchMap[wId][eId] = info;
+      });
+    }
+
+    const content = document.getElementById('content');
+    if (rikishiOrder.length === 0) {
+      content.innerHTML = '<div class="empty"><h2>No rikishi data</h2><p>Could not load the banzuke.</p></div>';
+      return;
+    }
+
+    const rikishi = rikishiOrder;
+    // index maps: rikishi id → col index
+    const idToColIdx = {};
+    rikishi.forEach((r, i) => { idToColIdx[r.id] = i; });
+
+    // Arrays to hold header elements for highlight
+    const colHeaderInners = [];  // indexed by col
+    const rowHeaderInners = [];  // indexed by row
+    const dataCells = [];        // [ri][ci] → td
+
+    const outer = document.createElement('div');
+    outer.className = 'matrix-outer';
+    const table = document.createElement('table');
+    table.className = 'matrix' + (compactCheckbox.checked ? ' compact' : '');
+
+    // ── Column headers ──
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    const corner = document.createElement('th');
+    corner.className = 'corner-cell';
+    // corner sticky top+left
+    corner.style.cssText = 'position:sticky;left:0;top:0;z-index:4;background:var(--bg);';
+    headerRow.appendChild(corner);
+
+    rikishi.forEach((r, ci) => {
+      const th = document.createElement('th');
+      th.className = 'col-header';
+      const inner = document.createElement('div');
+      inner.className = 'col-header-inner';
+      inner.innerHTML = `<span class="ch-rank">${r.rank}</span><span class="ch-name clickable">${r.shikona}</span>`;
+      inner.querySelector('.ch-name').addEventListener('click', () => {
+        selectedRikishiId = (selectedRikishiId === r.id) ? null : r.id;
+        applySelectionState();
+      });
+      th.appendChild(inner);
+      colHeaderInners.push(inner);
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // ── Body ──
+    const tbody = document.createElement('tbody');
+    rikishi.forEach((rowR, ri) => {
+      const tr = document.createElement('tr');
+
+      // Row header
+      const rh = document.createElement('td');
+      rh.className = 'row-header';
+      const rhInner = document.createElement('div');
+      rhInner.className = 'row-header-inner';
+      rhInner.innerHTML = `<span class="rh-rank">${rowR.rank}</span><span class="rh-name clickable">${rowR.shikona}</span>`;
+      rhInner.querySelector('.rh-name').addEventListener('click', () => {
+        selectedRikishiId = (selectedRikishiId === rowR.id) ? null : rowR.id;
+        applySelectionState();
+      });
+      rh.appendChild(rhInner);
+      rowHeaderInners.push(rhInner);
+      tr.appendChild(rh);
+
+      const rowCells = [];
+      dataCells.push(rowCells);
+
+      // Data cells
+      rikishi.forEach((colR, ci) => {
+        const td = document.createElement('td');
+        td.className = 'data-cell';
+        td.dataset.row = ri;
+        td.dataset.col = ci;
+
+        if (rowR.id === colR.id) {
+          td.classList.add('cell-diag');
+          td.textContent = '✕';
+        } else {
+          const info = matchMap[rowR.id] && matchMap[rowR.id][colR.id];
+          if (!info) {
+            td.classList.add('cell-empty');
+            td.textContent = '–';
+          } else {
+            const spoiler = spoilerCheckbox.checked;
+            if (info.scheduled) {
+              td.classList.add('cell-scheduled');
+              applyCellStyle(td, spoiler ? 'spoiler' : 'scheduled', info.day, rangeStart, rangeEnd);
+              td.textContent = `D${info.day}`;
+              td.dataset.tip = `Day ${info.day} — scheduled`;
+            } else {
+              const rowWon = info.winnerId === rowR.id;
+              const type = spoiler ? 'spoiler' : (rowWon ? 'win' : 'loss');
+              td.classList.add(spoiler ? 'cell-spoiler' : (rowWon ? 'cell-win' : 'cell-loss'));
+              applyCellStyle(td, type, info.day, rangeStart, rangeEnd);
+              td.textContent = `D${info.day}`;
+              const km = (!spoiler && info.kimarite) ? ` · ${info.kimarite}` : '';
+              const result = spoiler ? '' : ` — ${rowWon ? 'Win' : 'Loss'}`;
+              td.dataset.tip = `Day ${info.day}${result}${km}`;
+            }
+            // Hover: highlight row + col headers
+            td.addEventListener('mouseenter', (e) => {
+              // Highlight row header
+              rowHeaderInners[ri].classList.add('highlighted');
+              rowHeaderInners[ri].querySelector('.rh-name').classList.add('highlighted');
+              // Highlight col header
+              colHeaderInners[ci].classList.add('highlighted');
+              colHeaderInners[ci].querySelector('.ch-name').classList.add('highlighted');
+              // Show tooltip
+              if (td.dataset.tip) showTooltip(e, td.dataset.tip);
+            });
+            td.addEventListener('mousemove', positionTooltip);
+            td.addEventListener('mouseleave', () => {
+              rowHeaderInners[ri].classList.remove('highlighted');
+              rowHeaderInners[ri].querySelector('.rh-name').classList.remove('highlighted');
+              colHeaderInners[ci].classList.remove('highlighted');
+              colHeaderInners[ci].querySelector('.ch-name').classList.remove('highlighted');
+              hideTooltip();
+            });
+          }
+        }
+        tr.appendChild(td);
+        rowCells.push(td);
+      }); // end rikishi.forEach (cols)
+      tbody.appendChild(tr);
+    }); // end rikishi.forEach (rows)
+    table.appendChild(tbody);
+    outer.appendChild(table);
+
+    // ── Selection state ──────────────────────────────────────────────
+    function applySelectionState() {
+      const selId = selectedRikishiId;
+
+      rowHeaderInners.forEach((inner, ri) => {
+        inner.classList.toggle('selected', selId !== null && rikishi[ri].id === selId);
+      });
+      colHeaderInners.forEach((inner, ci) => {
+        inner.classList.toggle('selected', selId !== null && rikishi[ci].id === selId);
+      });
+
+      dataCells.forEach((rowCells, ri) => {
+        rowCells.forEach((td, ci) => {
+          if (selId === null) {
+            td.classList.remove('dimmed');
+          } else {
+            const involves = (rikishi[ri].id === selId || rikishi[ci].id === selId);
+            td.classList.toggle('dimmed', !involves);
+          }
+        });
+      });
+    }
+
+    content.innerHTML = '';
+    content.appendChild(outer);
+    applySelectionState();
+  }
+
+  // ── Fetch ─────────────────────────────────────────────────────────
+  async function fetchAll() {
+    const bashoId  = document.getElementById('basho-select').value;
+    const division = document.getElementById('division-select').value;
+    if (!bashoId) { setStatus('Please select a basho.', false, true); return; }
+
+    const btn = document.getElementById('fetch-btn');
+    btn.disabled = true;
+    allMatchesByDay    = {};
+    daysWithData       = [];
+    rikishiOrder       = [];
+    selectedRikishiId  = null;
+    document.getElementById('range-wrap').classList.remove('visible');
+    document.getElementById('legend-wrap').classList.remove('visible');
+    document.getElementById('content').innerHTML = '';
+    document.getElementById('progress-wrap').classList.add('visible');
+    updateProgress(0, 16);
+    setStatus(`Loading banzuke & all 15 days — ${document.getElementById('basho-select').selectedOptions[0].text}, ${division}…`, true, false);
+
+    const banzukeUrl = `https://www.sumo-api.com/api/basho/${bashoId}/banzuke/${division}`;
+    let done = 0;
+    const tick = () => { done++; updateProgress(done, 16); };
+
+    const [banzukeResult, ...dayResults] = await Promise.all([
+      fetch(banzukeUrl).then(r => r.ok ? r.json() : null).catch(() => null).finally(tick),
+      ...Array.from({length:15}, (_, i) => {
+        const day = i + 1;
+        const url = `https://www.sumo-api.com/api/basho/${bashoId}/torikumi/${division}/${day}`;
+        return fetch(url)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => ({ day, data }))
+          .catch(() => ({ day, data: null }))
+          .finally(tick);
+      })
+    ]);
+
+    document.getElementById('progress-wrap').classList.remove('visible');
+
+    dayResults.forEach(({ day, data }) => {
+      if (!data) return;
+      // Guard: reject the nonsense {"date":"","startDate":"0001-01-01..."} shape
+      if (!Array.isArray(data) && !data.torikumi && !data.matches) return;
+      const arr = Array.isArray(data) ? data : (data.torikumi || data.matches || []);
+      // Filter to only match objects that have real rikishi identifiers
+      const valid = arr.filter(m => m.eastId && m.westId);
+      if (valid.length) allMatchesByDay[day] = valid;
+    });
+    daysWithData = Object.keys(allMatchesByDay).map(Number).sort((a,b) => a-b);
+
+    if (banzukeResult && (banzukeResult.east || banzukeResult.west)) {
+      const east = banzukeResult.east || [];
+      const west = banzukeResult.west || [];
+      const maxLen = Math.max(east.length, west.length);
+      const ordered = [];
+      for (let i = 0; i < maxLen; i++) {
+        if (east[i] && east[i].rikishiID) ordered.push({ id: east[i].rikishiID, shikona: east[i].shikonaEn || east[i].shikona || `East ${i+1}`, rank: east[i].rank || '', side: 'East' });
+        if (west[i] && west[i].rikishiID) ordered.push({ id: west[i].rikishiID, shikona: west[i].shikonaEn || west[i].shikona || `West ${i+1}`, rank: west[i].rank || '', side: 'West' });
+      }
+      rikishiOrder = ordered;
+    }
+
+    if (rikishiOrder.length === 0) {
+      const seen = new Map();
+      Object.values(allMatchesByDay).flat().forEach(m => {
+        if (m.eastId && !seen.has(m.eastId)) seen.set(m.eastId, { id: m.eastId, shikona: m.eastShikona || m.east || String(m.eastId), rank: m.eastRank || '', side: 'East' });
+        if (m.westId && !seen.has(m.westId)) seen.set(m.westId, { id: m.westId, shikona: m.westShikona || m.west || String(m.westId), rank: m.westRank || '', side: 'West' });
+      });
+      rikishiOrder = [...seen.values()];
+    }
+
+    if (daysWithData.length === 0 && rikishiOrder.length === 0) {
+      setStatus('No data found. This basho may not have taken place yet.', false, false);
+      document.getElementById('content').innerHTML = '<div class="empty"><h2>No data found</h2><p>This basho may not have taken place yet.</p></div>';
+      btn.disabled = false;
+      return;
+    }
+
+    const bashoLabel = document.getElementById('basho-select').selectedOptions[0].text;
+    const totalBouts = Object.values(allMatchesByDay).reduce((s,a) => s+a.length, 0);
+    setStatus(`${rikishiOrder.length} rikishi · ${totalBouts} bouts across ${daysWithData.length} days · ${division}, ${bashoLabel}`, false, false);
+
+    const minDay = daysWithData.length ? daysWithData[0] : 1;
+    const maxDay = daysWithData.length ? daysWithData[daysWithData.length-1] : 15;
+    document.getElementById('range-start').value = minDay;
+    document.getElementById('range-end').value   = maxDay;
+    updateSliderFill();
+    buildDayTicks();
+    document.getElementById('range-wrap').classList.add('visible');
+    document.getElementById('legend-wrap').classList.add('visible');
+
+    renderMatrix();
+    btn.disabled = false;
+  }
+
+  // ── Events ────────────────────────────────────────────────────────
+  document.getElementById('range-start').addEventListener('input', function() {
+    if (parseInt(this.value) > parseInt(document.getElementById('range-end').value))
+      this.value = document.getElementById('range-end').value;
+    updateSliderFill();
+    if (rikishiOrder.length) renderMatrix();
+  });
+  document.getElementById('range-end').addEventListener('input', function() {
+    if (parseInt(this.value) < parseInt(document.getElementById('range-start').value))
+      this.value = document.getElementById('range-start').value;
+    updateSliderFill();
+    if (rikishiOrder.length) renderMatrix();
+  });
+
+  document.getElementById('fetch-btn').addEventListener('click', fetchAll);
+  populateBasho();
+  updateSliderFill();
+</script>
+</body>
+</html>
